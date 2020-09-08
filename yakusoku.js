@@ -14,7 +14,21 @@ class Yakusoku {
 
       // then()に渡された関数を全て実行
       for (const thenFunction of this.thenFunctions) {
-        thenFunction.onFulfilled(resolvedValue);
+        try {
+          const ret = thenFunction.onFulfilled(resolvedValue);
+          if (isThenable(ret)) {
+            // 戻り値がYakusokuオブジェクトならthen()に渡す
+            ret.then(thenFunction.resolve, thenFunction.reject);
+          }
+          else {
+            // Yakusokuオブジェクトでなければfulfilled
+            thenFunction.resolve(ret);
+          }
+        }
+        catch (err) {
+          // 例外が発生したらrejected
+          thenFunction.reject(err);
+        }
       }
     };
     const reject = (rejectedValue) => {
@@ -26,7 +40,21 @@ class Yakusoku {
 
       // then()に渡された関数を全て実行
       for (const thenFunction of this.thenFunctions) {
-        thenFunction.onRejected(rejectedValue);
+        try {
+          const ret = thenFunction.onRejected(rejectedValue);
+          if (isThenable(ret)) {
+            // 戻り値がYakusokuオブジェクトならthen()に渡す
+            ret.then(thenFunction.resolve, thenFunction.reject);
+          }
+          else {
+            // Yakusokuオブジェクトでなければfulfilled
+            thenFunction.resolve(ret);
+          }
+        }
+        catch (err) {
+          // 例外が発生したらrejected
+          thenFunction.reject(err);
+        }
       }
     };
 
@@ -49,13 +77,15 @@ class Yakusoku {
 
     if (this.state === "pending") {
       // pendingなら後で呼び出すので関数を記録しておく
-      this.thenFunctions.push({ onFulfilled, onRejected });
+      return new Yakusoku((resolve, reject) => {
+        this.thenFunctions.push({ onFulfilled, onRejected, resolve, reject });
+      });
     }
     if (this.state === "fulfilled") {
-      onFulfilled(this.resolvedValue);
+      return wrapWithYakusoku(onFulfilled(this.resolvedValue));
     }
     if (this.state === "rejected") {
-      onRejected(this.rejectedValue);
+      return wrapWithYakusoku(onRejected(this.rejectedValue));
     }
   }
 
@@ -70,4 +100,20 @@ function identity(value) { // identity function
 
 function thrower(err) { // thrower function
   throw err;
+}
+
+function isThenable(value) {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  return typeof value.then === "function";
+}
+
+function wrapWithYakusoku(value) {
+  if (isThenable(value)) {
+    return value;
+  }
+  return new Yakusoku((resolve) => {
+    resolve(value);
+  });
 }
