@@ -27,4 +27,32 @@ class Yakusoku {
       reject(err);
     }
   }
+
+  then(onFulfilled, onRejected) {
+    if (typeof onFulfilled !== "function") {
+      onFulfilled = identity;
+    }
+    if (typeof onRejected !== "function") {
+      onRejected = thrower;
+    }
+
+    if (this.state === "fulfilled") {
+      onFulfilled(this.resolvedValue);
+    }
+    if (this.state === "rejected") {
+      onRejected(this.rejectedValue);
+    }
+  }
+
+  catch(onRejected) {
+    return this.then(null, onRejected); // 1番目の引数をidentity functionにする
+  }
+}
+
+function identity(value) { // identity function
+  return value;
+}
+
+function thrower(err) { // thrower function
+  throw err;
 }
