@@ -1,4 +1,13 @@
 class Yakusoku {
+  static race(iterable) {
+    return new Yakusoku((resolve, reject) => {
+      for (const y of iterable) {
+        // 最初に状態が変わったものを採用
+        y.then(resolve, reject);
+      }
+    });
+  }
+
   constructor(func) {
     this.state = "pending"; // 内部状態; pending / fulfilled / rejected
     this.resolvedValue = null; // resolve()で渡された値を保持
