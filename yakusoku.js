@@ -8,6 +8,27 @@ class Yakusoku {
     });
   }
 
+  static all(iterable) {
+    return new Yakusoku((resolve, reject) => {
+      const resolvedValues = Array(iterable.length); // 結果を格納する配列
+      let iterableIndex = 0; // 渡されたYakusokuオブジェクトの配列インデックス
+      let fulfilledCounter = 0; // fulfilledになった数のカウンター
+
+      for (const y of iterable) {
+        const i = iterableIndex++; // 何番目のオブジェクトか記録しておく
+        y.then((value) => {
+          // fulfilledになったものを元の順番通りに格納
+          resolvedValues[i] = value;
+          fulfilledCounter++;
+          if (fulfilledCounter >= iterable.length) {
+            // 全てfulfilled
+            resolve(resolvedValues);
+          }
+        }, reject); // 1つでもrejectedになったらYakusoku.all()の結果もrejected
+      }
+    });
+  }
+
   constructor(func) {
     this.state = "pending"; // 内部状態; pending / fulfilled / rejected
     this.resolvedValue = null; // resolve()で渡された値を保持
